@@ -1,0 +1,13 @@
+{
+  "programa": "Auxílio Moradia Temporário (programa fictício, para demonstração)",
+  "exigencias": [
+    {"id": "R1", "documento": "Documento de identidade do responsável familiar (RG ou CNH)", "regra": "Edital fictício, item 4.1"},
+    {"id": "R2", "documento": "CPF do responsável familiar", "regra": "Edital fictício, item 4.1"},
+    {"id": "R3", "documento": "Comprovante de residência no município emitido há no máximo 90 dias", "regra": "Edital fictício, item 4.2"},
+    {"id": "R4", "documento": "Comprovante de renda de todos os membros da família, ou declaração de ausência de renda", "regra": "Edital fictício, item 4.3"},
+    {"id": "R5", "documento": "Renda familiar per capita de até meio salário mínimo", "regra": "Edital fictício, item 3.1"},
+    {"id": "R6", "documento": "Laudo ou relatório social que comprove a situação de vulnerabilidade", "regra": "Edital fictício, item 4.4"},
+    {"id": "R7", "documento": "Contrato de locação ou declaração do locador com valor do aluguel", "regra": "Edital fictício, item 4.5"},
+    {"id": "R8", "documento": "Certidão negativa de propriedade de imóvel em nome dos membros da família", "regra": "Edital fictício, item 4.6", "observacao": "Certidão positiva com efeito de negativa é aceita."}
+  ]
+}
