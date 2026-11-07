@@ -22,4 +22,4 @@ Fluxo do n8n que recebe o PDF de um processo por formulário, extrai o texto, pe
 
 Para usar outro programa, edite a lista `EXIGENCIAS` no nó **Montar pedido ao Claude**.
 
-Feito por Danila Moraes com o apoio do Claude.
+Feito por Danila Almanadily com o apoio do Claude.
