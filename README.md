@@ -51,6 +51,7 @@ checklist.py        # extração de texto, prompt, chamada ao Claude e validaç�
 exigencias.json     # exigências do programa fictício
 gerar_exemplos.py   # gera os PDFs fictícios
 tests/              # testes com cliente simulado
+n8n/                # mesmo fluxo de checklist implementado em n8n (ver n8n/README.md)
 ```
 
 ## Limitações
@@ -58,4 +59,4 @@ tests/              # testes com cliente simulado
 - PDFs escaneados (imagem) não têm texto extraível; o item aparece como **Verificar**.
 - A ferramenta não substitui a análise: ela organiza a conferência para o analista decidir.
 
-Feito por Danila Moraes com o apoio do Claude.
+Feito por Danila Almanadily com o apoio do Claude.
