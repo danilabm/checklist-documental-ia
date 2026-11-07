@@ -1,0 +1,205 @@
+{
+  "name": "Checklist documental com IA (n8n)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Checklist documental com IA",
+        "formDescription": "Envie o PDF do processo (dados fictícios). A IA confere cada exigência e devolve as pendências.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF do processo",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fd24bb83-5fb0-4f98-acab-1a54051bd643",
+      "name": "Formulário: enviar processo",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "6ccd5f5e-5d00-4c47-8d2e-91e3125b2d51"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o primeiro PDF enviado no formulário e padroniza o nome do binário\nconst item = $input.first();\nconst chaves = Object.keys(item.binary || {});\nif (chaves.length === 0) {\n  throw new Error('Nenhum PDF recebido.');\n}\nreturn [{ json: {}, binary: { data: item.binary[chaves[0]] } }];"
+      },
+      "id": "4bc69883-d8de-4a1c-b0f4-732231af9409",
+      "name": "Preparar PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "51d459b6-3d72-40a7-8706-4b68539e3488",
+      "name": "Extrair texto do PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const EXIGENCIAS = {\n  \"programa\": \"Auxílio Moradia Temporário (programa fictício, para demonstração)\",\n  \"exigencias\": [\n    {\n      \"id\": \"R1\",\n      \"documento\": \"Documento de identidade do responsável familiar (RG ou CNH)\",\n      \"regra\": \"Edital fictício, item 4.1\"\n    },\n    {\n      \"id\": \"R2\",\n      \"documento\": \"CPF do responsável familiar\",\n      \"regra\": \"Edital fictício, item 4.1\"\n    },\n    {\n      \"id\": \"R3\",\n      \"documento\": \"Comprovante de residência no município emitido há no máximo 90 dias\",\n      \"regra\": \"Edital fictício, item 4.2\"\n    },\n    {\n      \"id\": \"R4\",\n      \"documento\": \"Comprovante de renda de todos os membros da família, ou declaração de ausência de renda\",\n      \"regra\": \"Edital fictício, item 4.3\"\n    },\n    {\n      \"id\": \"R5\",\n      \"documento\": \"Renda familiar per capita de até meio salário mínimo\",\n      \"regra\": \"Edital fictício, item 3.1\"\n    },\n    {\n      \"id\": \"R6\",\n      \"documento\": \"Laudo ou relatório social que comprove a situação de vulnerabilidade\",\n      \"regra\": \"Edital fictício, item 4.4\"\n    },\n    {\n      \"id\": \"R7\",\n      \"documento\": \"Contrato de locação ou declaração do locador com valor do aluguel\",\n      \"regra\": \"Edital fictício, item 4.5\"\n    },\n    {\n      \"id\": \"R8\",\n      \"documento\": \"Certidão negativa de propriedade de imóvel em nome dos membros da família\",\n      \"regra\": \"Edital fictício, item 4.6\",\n      \"observacao\": \"Certidão positiva com efeito de negativa é aceita.\"\n    }\n  ]\n};\n\nconst texto = ($json.text || '').slice(0, 150000);\nconst prompt =\n  `Você é analista de controle interno. Programa: ${EXIGENCIAS.programa}.\\n` +\n  'Confira o processo contra CADA exigência abaixo e chame a ferramenta registrar_analise com uma linha por exigência.\\n' +\n  \"Use 'Atendido' só com evidência clara no texto; 'Pendente' quando o documento falta ou contraria a regra; \" +\n  \"'Verificar' quando há dúvida. Nunca invente conteúdo que não está no processo.\\n\\n\" +\n  `<exigencias>\\n${JSON.stringify(EXIGENCIAS.exigencias, null, 1)}\\n</exigencias>\\n\\n` +\n  `<processo>\\n${texto || '[PDF sem texto extraível — pode ser imagem escaneada]'}\\n</processo>`;\n\nconst body = {\n  model: 'claude-sonnet-5-5',\n  max_tokens: 4000,\n  tools: [{\n    name: 'registrar_analise',\n    description: 'Registra o resultado da análise, uma linha por exigência.',\n    input_schema: {\n      type: 'object',\n      properties: {\n        itens: { type: 'array', items: { type: 'object', properties: {\n          id: { type: 'string' },\n          status: { type: 'string', enum: ['Atendido', 'Pendente', 'Verificar'] },\n          evidencia: { type: 'string' }\n        }, required: ['id', 'status', 'evidencia'] } },\n        resumo: { type: 'string' }\n      },\n      required: ['itens', 'resumo']\n    }\n  }],\n  tool_choice: { type: 'tool', name: 'registrar_analise' },\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn [{ json: { body, exigencias: EXIGENCIAS.exigencias } }];"
+      },
+      "id": "22ebbaff-e44a-4289-9838-131b33c1d0c9",
+      "name": "Montar pedido ao Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "6d0b48a8-dc7e-4b27-9d6b-6dc7be48275e",
+      "name": "Chamar Claude (API Anthropic)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta a resposta do Claude com a lista de exigências e monta o relatório\nconst exigencias = $('Montar pedido ao Claude').first().json.exigencias;\nconst conteudo = $json.content || [];\nconst chamada = conteudo.find(b => b.type === 'tool_use' && b.name === 'registrar_analise');\nif (!chamada) {\n  throw new Error('O modelo não devolveu a análise estruturada.');\n}\nconst porId = Object.fromEntries((chamada.input.itens || []).map(i => [i.id, i]));\nconst VALIDOS = ['Atendido', 'Pendente', 'Verificar'];\n\nconst linhas = exigencias.map(ex => {\n  const item = porId[ex.id] || { status: 'Verificar', evidencia: 'O modelo não analisou este item.' };\n  // Item pulado ou status fora da lista nunca vira \"Atendido\"\n  const status = VALIDOS.includes(item.status) ? item.status : 'Verificar';\n  return { id: ex.id, exigencia: ex.documento, regra: ex.regra, status, evidencia: item.evidencia || '' };\n});\n\nconst pendentes = linhas.filter(l => l.status !== 'Atendido').length;\nconst tabela = linhas.map(l => `${l.id} | ${l.status} | ${l.exigencia} | ${l.evidencia}`).join('\\n');\nconst relatorio =\n  `${pendentes} de ${linhas.length} exigências pendentes ou a verificar.\\n\\n` +\n  `${tabela}\\n\\nResumo: ${chamada.input.resumo || ''}\\n\\n` +\n  'A IA organiza a conferência; a decisão final é do analista.';\n\nreturn [{ json: { pendentes, total: linhas.length, linhas, relatorio } }];"
+      },
+      "id": "4254f610-751f-4308-8d71-28ef5bfb77cc",
+      "name": "Interpretar e validar resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Resultado da conferência",
+        "completionMessage": "={{ $json.relatorio }}",
+        "options": {}
+      },
+      "id": "ceb080b7-ae95-4449-b2f5-29018dceb478",
+      "name": "Mostrar resultado",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        0
+      ],
+      "webhookId": "995701a9-b762-45e6-bc73-54bbd8330c69"
+    }
+  ],
+  "connections": {
+    "Formulário: enviar processo": {
+      "main": [
+        [
+          {
+            "node": "Preparar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar PDF": {
+      "main": [
+        [
+          {
+            "node": "Extrair texto do PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair texto do PDF": {
+      "main": [
+        [
+          {
+            "node": "Montar pedido ao Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar pedido ao Claude": {
+      "main": [
+        [
+          {
+            "node": "Chamar Claude (API Anthropic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar Claude (API Anthropic)": {
+      "main": [
+        [
+          {
+            "node": "Interpretar e validar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpretar e validar resposta": {
+      "main": [
+        [
+          {
+            "node": "Mostrar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
